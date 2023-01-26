@@ -154,14 +154,6 @@ summary(PopMod) # summary of mod
 str(PopMod) # structure of mod
 ``` 
 
-```{r}
-# Viewing LD
-SiteMod$scaling
-
-PopMod$scaling
-```
-
-
 # LD Axes
 
 To distinguish among the 3 sites, there would need to be 2 LD axes. This is because there are 3 sites (Timmins, BEF, KSR), as Number of Eigenvectors = Number of LD axes = Number of group categories - 1. Following this, to distinguish between the 6 sites (A, C, E, J, S, T), there would need to be 5 LD axes.
@@ -180,6 +172,14 @@ PopPred <- predict(PopMod) # Calculating scores for Pop
 summary(PopPred)
 ```
 # LDA Models and Lythrum Data
+
+```{r}
+# Viewing LD
+SiteMod$scaling
+
+PopMod$scaling
+```
+
 
 From analyzing the Lythrum Data through LDA models, it is observed that FVeg07-FVeg10 are the traits that best describe LD1 in the population model, and that Flwr07-Flwr10 are the traits that best describe LD1 in the site model. In the Population model LD2 is primarily described by InfMass10 and Flwr08, and in LD2 of the site model FVeg08 and Flwr10 distiguishes the best. For LD3 in population InfMass09 and Flwr09 distinguish the highest. In LD4 Flwr09 is the highest, and in LD5 FVeg08 and Flwr09 distinguish between groups the best. 
 
