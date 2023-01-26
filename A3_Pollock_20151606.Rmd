@@ -1,0 +1,190 @@
+---
+title: "A3_Pollock_20151606"
+author: "Caleb Pollock"
+date: '2023-01-25'
+output: html_document
+---
+
+#Libraries and Data
+
+
+```{r}
+library(ggplot2)
+library(MASS)
+library(dplyr)
+library(tidyr)
+
+lythDat <- read.csv("https://colauttilab.github.io/Data/ColauttiBarrett2013Data.csv",header=TRUE)
+
+source("https://bit.ly/theme_pub")
+
+theme_set(theme_pub())
+```
+
+# Data Inspection
+
+To begin, we inspect our data using the usual first look functions. Some NAs are recorded in multiple variables, so following the PCA tutorial, the NAs will replaced with the column average. Histograms are generated to check for normality, which in the case of Flwr, and FVeg appears to fall reasonably close to normality. InfMass appears to have a more strange distribtution, however this could be due to the fact that it is real data. Ultimately, I decided to remove the NAs from the data set and keep each of the 4 variables non-transformed. 
+
+```{r}
+#Basic data inspection functions to get a initial look
+str(lythDat)
+head(lythDat)
+```
+
+```{r}
+#Seperating Data sets
+Flwr <- lythDat %>% # Data set for the Flwr variable
+  dplyr::select(starts_with("Flwr"))
+
+Flwr <- Flwr %>% # Fix NA in Flwr
+  mutate(Flwr07 = ifelse(is.na(Flwr07),
+                         mean(Flwr07,na.rm=T),Flwr07),
+         Flwr08 = ifelse(is.na(Flwr08),
+                         mean(Flwr08,na.rm=T),Flwr08),
+         Flwr09 = ifelse(is.na(Flwr09),
+                         mean(Flwr09,na.rm=T),Flwr09),
+         Flwr10 = ifelse(is.na(Flwr10),
+                         mean(Flwr10,na.rm=T),Flwr10))
+
+FVeg <- lythDat %>% # Data set for the FVeg variable
+  dplyr::select(starts_with("FVeg")) 
+
+FVeg <- FVeg %>% # Fix NA in FVeg
+  mutate(FVeg07 = ifelse(is.na(FVeg07),
+                         mean(FVeg07,na.rm=T),FVeg07),
+         FVeg08 = ifelse(is.na(FVeg08),
+                         mean(FVeg08,na.rm=T),FVeg08),
+         FVeg09 = ifelse(is.na(FVeg09),
+                         mean(FVeg09,na.rm=T),FVeg09),
+         FVeg10 = ifelse(is.na(FVeg10),
+                         mean(FVeg10,na.rm=T),FVeg10))
+
+InfMass <- lythDat %>% # Data set for the InfMass variable
+  dplyr::select(starts_with("InfMass"))
+
+
+InfMass <- InfMass %>% # Fix NA in InfMass
+  mutate(InfMass07 = ifelse(is.na(InfMass07),
+                            mean(InfMass07,na.rm=T),InfMass07),
+         InfMass08 = ifelse(is.na(InfMass08),
+                            mean(InfMass08, na.rm = T), InfMass08),
+         InfMass09 = ifelse(is.na(InfMass09),
+                            mean(InfMass09, na.rm = T),InfMass09),
+         InfMass10 = ifelse(is.na(InfMass10),
+                            mean(InfMass10, na.rm = T),InfMass10))
+
+
+```
+
+```{r}
+# creating some histograms for checking normality for Flwr
+
+ggplot(aes(x=Flwr07),data=Flwr) +
+  geom_histogram()
+ggplot(aes(x=Flwr08),data=Flwr) +
+  geom_histogram()
+ggplot(aes(x=Flwr09),data=Flwr) +
+  geom_histogram()
+ggplot(aes(x=Flwr10),data=Flwr) +
+  geom_histogram()
+```
+
+```{r}
+# creating some histograms for checking normality for FVeg
+
+ggplot(aes(x=FVeg07),data=FVeg) +
+  geom_histogram()
+ggplot(aes(x=FVeg08),data=FVeg) +
+  geom_histogram()
+ggplot(aes(x=FVeg09),data=FVeg) +
+  geom_histogram()
+ggplot(aes(x=FVeg10),data=FVeg) +
+  geom_histogram()
+```
+```{r}
+# creating some histograms for checking normality for InfMass
+
+ggplot(aes(x=InfMass07),data=InfMass) +
+  geom_histogram()
+ggplot(aes(x=InfMass08),data=InfMass) +
+  geom_histogram()
+ggplot(aes(x=InfMass09),data=InfMass) +
+  geom_histogram()
+ggplot(aes(x=InfMass10),data=InfMass) +
+  geom_histogram()
+```
+
+# Scaling and Creating Features and Classifying Data sets
+
+To create the Features data set, I used cbind to bind together columns-wise Flwr, FVeg, InfMass, and HVeg. To create the Classifying data set, I used dplyr select to take columns 2 (site) and 6 (pop) from the Lythrum data set and into a seperate data set. To scale the data, I used the method from the discriminant analysis tutorial using mutate_all and scale.
+
+```{r}
+# Creating the features Data set and scaling them
+Features <- cbind(Flwr,FVeg, InfMass)
+head(Features)
+
+#Creating the classifying data set using site and pop as the classifiers
+RespDat <- lythDat %>%
+  dplyr::select(2,6)
+head(RespDat)
+
+# Creating the scaled features data set using the method in the Discriminant Analysis tutorial
+ScaledFeat <- Features %>%
+  mutate_all(scale)
+head(ScaledFeat)
+```
+# Feature Selection and Why it's Not Necessary
+
+In the case of this data set, it is not neccesary to preform feature selection. Feature selection is preformed to determine which features maintain good predictive power at distinguishing among groups. In the PCA tutorial, we were analyzing a data set comparing 14 chemicals and determining how there ability to distinguish a patients COVID status. In the case of lythrum data, our data set only covers 3 traits over 4 years, meaning that the data set already contains a small number of features, and eliminating some features may limit the scope of the analysis.
+
+
+# LDA
+
+To run LDAs distinguishing between genetic populations and regions, we will use the lda() function in MASS with our classifying/response variable being either pop or site. The features will be InfMass, FVeg, and Flwr.
+
+```{r}
+# Run LDA
+
+SiteMod <- lda(x=ScaledFeat, grouping = RespDat$Site) # Site model
+summary(SiteMod) # summary of mod
+str(SiteMod) # structure of mod
+
+PopMod <- lda(x=ScaledFeat, grouping = RespDat$Pop) # Pop model
+summary(PopMod) # summary of mod
+str(PopMod) # structure of mod
+``` 
+
+```{r}
+# Viewing LD
+SiteMod$scaling
+
+PopMod$scaling
+```
+
+
+# LD Axes
+
+To distinguish among the 3 sites, there would need to be 2 LD axes. This is because there are 3 sites (Timmins, BEF, KSR), as Number of Eigenvectors = Number of LD axes = Number of group categories - 1. Following this, to distinguish between the 6 sites (A, C, E, J, S, T), there would need to be 5 LD axes.
+
+# LD Objects
+
+The $scaling slice show the factor loadings, which are also known as the LD eigenvectors.This is the method that allows comparison from the Model to the original dataset. This relates to the LD eigenvectors because they are the LD eigenvectors. Eigenvectors for linear discriminant analysis differ from those of principle components analysis in that LD loadings are calculated to distinguish between groups, where PC loadings are meant to explain variation across all of the features included in the analysis. Thus, LDA is best used for disntinguishing groups. 
+
+# Predict
+
+```{r}
+SitePred <- predict(SiteMod) # Calculating scores for Site 
+summary(SitePred)
+
+PopPred <- predict(PopMod) # Calculating scores for Pop
+summary(PopPred)
+```
+# LDA Models and Lythrum Data
+
+From analyzing the Lythrum Data through LDA models, it is observed that FVeg07-FVeg10 are the traits that best describe LD1 in the population model, and that Flwr07-Flwr10 are the traits that best describe LD1 in the site model. In the Population model LD2 is primarily described by InfMass10 and Flwr08, and in LD2 of the site model FVeg08 and Flwr10 distiguishes the best. For LD3 in population InfMass09 and Flwr09 distinguish the highest. In LD4 Flwr09 is the highest, and in LD5 FVeg08 and Flwr09 distinguish between groups the best. 
+
+When comparing these results to the PCA tutorial, PC1 was affected by all three measurements, and PC2 was primarily differentiated by InfMass and Flwr.
+
+In the Population model, the trait of FVeg distinguishes the best, whereas in the site model, Flwr distinguishes the best. 
+
+Height of the vegatative component of the plant may explain the ability to distinguish between populations due to height being a genetic factor. All indivduals of the "A" population share a genetic lineage, meaning that they would have closer height to a member of population "A" than a member of population "C", "E", "J", "T". This would result in the model being able to group those of similar height together easier. Contrasting this to Julian day of first flower (Flwr) distinguishing between sites the best, although this trait may be genetic, it is likely much more connected to environmental components such as sunlight, temperature, availability of resources etc. The three different sites will all experience different temperatures, sunlight, weather conditions, and those populations will be more similar to themselves than populations at the other sites. Thus, Flwr will be able to distinguish sites better than the other measurements. 
